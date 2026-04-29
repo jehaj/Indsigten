@@ -31,7 +31,7 @@ At give brugeren mulighed for at finde information i store mængder PDF-filer ve
 
 * **Semantisk søgning:**
   * Brug **all-MiniLM-L6-v2** via `sentence-transformers`.
-  * **Argumentation for modelvalg:** 
+  * **Argumentation for modelvalg:**
     * **Effektivitet:** Denne model er ekstremt hurtig og fylder minimalt i hukommelsen (~80MB), hvilket gør den endnu mere velegnet til kørsel på bærbare computere med begrænsede ressourcer.
     * **Ydeevne:** Selvom den er lille, leverer den fremragende resultater for de fleste søgeopgaver og er en industristandard for letvægts semantisk søgning.
     * **Dimensioner:** Den bruger 384 dimensioner, hvilket reducerer både lagerplads og søgetid i forhold til større modeller.

@@ -6,6 +6,7 @@ import os
 class VectorStore:
     def __init__(self, db_path, dim=384, max_elements=10000):
         self.db_path = db_path
+        self.index_path = db_path + ".hnsw"
         self.dim = dim
         self.max_elements = max_elements
         
@@ -15,8 +16,13 @@ class VectorStore:
         
         # Initialize HNSW index
         self.index = hnswlib.Index(space='cosine', dim=self.dim)
-        # In a real app, we would load the index from disk if it exists
-        self.index.init_index(max_elements=self.max_elements, ef_construction=200, M=16)
+        if os.path.exists(self.index_path):
+            self.index.load_index(self.index_path, max_elements=self.max_elements)
+        else:
+            self.index.init_index(max_elements=self.max_elements, ef_construction=200, M=16)
+
+    def _save_index(self):
+        self.index.save_index(self.index_path)
         
     def _create_tables(self):
         self.conn.execute("""
@@ -27,6 +33,27 @@ class VectorStore:
                 text TEXT
             )
         """)
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS processed_files (
+                file_path TEXT PRIMARY KEY,
+                file_hash TEXT,
+                last_indexed TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        self.conn.commit()
+
+    def is_file_indexed(self, file_path, file_hash):
+        cursor = self.conn.execute(
+            "SELECT 1 FROM processed_files WHERE file_path = ? AND file_hash = ?",
+            (file_path, file_hash)
+        )
+        return cursor.fetchone() is not None
+
+    def mark_file_indexed(self, file_path, file_hash):
+        self.conn.execute(
+            "INSERT OR REPLACE INTO processed_files (file_path, file_hash) VALUES (?, ?)",
+            (file_path, file_hash)
+        )
         self.conn.commit()
         
     def add_item(self, doc_id, page, text, embedding):
@@ -40,6 +67,7 @@ class VectorStore:
         
         # 2. Add vector to HNSW
         self.index.add_items(embedding, label)
+        self._save_index()
         
     def search(self, query_vector, k=5):
         labels, distances = self.index.knn_query(query_vector, k=k)
