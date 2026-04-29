@@ -42,3 +42,6 @@ PYTHONPATH=src uv run python3 main.py --dirs demo -- "din søgestreng her"
 * `--cache-dir`: (Valgfri) Sti til tekst-cachen brugt af ripgrep (standard: `.cache/indsigten` i din hjemmemappe).
 
 Programmet bruger SHA3-512 hashing til at holde styr på hvilke filer der allerede er indekseret, så de ikke behandles flere gange.
+
+---
+*Denne kode er primært skrevet af Gemini (`Gemini CLI`), men er blevet gennemlæst og testet.*
