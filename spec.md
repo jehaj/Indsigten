@@ -1,7 +1,60 @@
-# Specifikationer
+# Specifikationer: Indsigten
 
-Dette dokument indeholder kravene til programmet Indsigten.
+Dette dokument beskriver kravene til "Indsigten", et program til hurtig og intelligent søgning i PDF-dokumenter.
 
-Det skal bruge semantisk søgning (semantic search), så man kan søge og finde hvad man leder efter, så længe meningen er det samme uden det behøver at skrevet på samme måde. Dette kan gøres ved at bruge EmbeddingGemma, gemme resultaterne i en SQLite database og anvende Approximate Nearest Neighbor (ANN) søgning til at hurtigt finde det bagefter.
+## Formål
 
-Derudover skal der også laves en tekst-cache, som kan søges i samtidigt for at undersøge om det man er interesseret i kan findes præcist. Dette kan gøres med `pdftotext'. Man kan så søge deri med 'ripgrep'. Alt dette skal ske automatisk og bag scenerne. Man søger i en generel grænseflade, som så vil vise hvilke PDFer indeholder, det man søger efter. Den skal vise hvilken side det er på, og hvis man klikker på resultatet, så skal den åbne PDFen på den side.
+At give brugeren mulighed for at finde information i store mængder PDF-filer ved at kombinere traditionel tekstsøgning (ripgrep) med moderne semantisk søgning (embeddings).
+
+## Funktionelle krav
+
+### 1. Brugergrænseflade (GUI)
+
+* Programmet skal være en desktop-applikation bygget med **PySide6** (Qt for Python).
+* Grænsefladen skal have:
+  * Et søgefelt til både semantisk og præcis søgning.
+  * En liste eller et område til visning af søgeresultater.
+  * En menu eller knapper til at tilføje PDF-filer eller mapper til indekset.
+  * Statusvisning (f.eks. "Indekserer...", "Søgning færdig").
+
+### 2. PDF-håndtering og indeksering
+
+* **Manuel kildevalg:** Brugeren vælger selv hvilke filer eller mapper, der skal inkluderes.
+* **Tekst-udtrækning:** Brug `pdftotext` (fra poppler-utils) til at udtrække rå tekst fra PDF'erne.
+* **Tekst-cache:** Den udtrukne tekst gemmes lokalt (f.eks. i en skjult mappe i brugerens hjemmemappe) for at muliggøre hurtig søgning med `ripgrep`.
+
+### 3. Søgemaskine
+
+* **Semantisk søgning:**
+  * Brug **EmbeddingGemma** (via et bibliotek som f.eks. `sentence-transformers` eller lignende kompatibelt med Python) til at generere vektorer (embeddings) af tekstbidder fra PDF-filerne.
+  * Resultaterne gemmes i en **SQLite**-database.
+  * Brug en ANN-metode (Approximate Nearest Neighbor) til hurtig genfinding af vektorer.
+* **Præcis søgning:**
+  * Kør `ripgrep` parallelt mod tekst-cachen for at finde eksakte tekststrenge.
+* **Resultatvisning:**
+  * Vis PDF-navn, sidenummer og et kort uddrag (snippet) af teksten.
+  * Ranger resultaterne efter relevans (semantisk score kombineret med præcise match).
+
+### 4. Visning af dokumenter
+
+* Når brugeren klikker på et resultat, skal PDF'en åbnes i systemets standard PDF-viser.
+* Programmet skal forsøge at sende parametre til PDF-viseren, så den åbner på det specifikke sidenummer.
+  * Dette kan gøres ved at detektere de mest gængse PDF-visere (f.eks. Okular, Evince, Adobe Acrobat) og bruge deres respektive kommandolinje-argumenter (f.eks. `--page`).
+
+## Tekniske specifikationer
+
+* **Sprog:** Python 3.14+
+* **GUI:** PySide6
+* **Database:** SQLite (med vektorer gemt som BLOB eller via en udvidelse hvis muligt)
+* **Værktøjer:**
+  * `pdftotext` (til tekst-udtræk)
+  * `ripgrep` (til hurtig søgning)
+  * `EmbeddingGemma` (modellen til embeddings)
+* **Miljøstyring:** `uv`
+
+## Arkitektur
+
+1. **Ingestion Layer:** Håndterer filvalg, kører `pdftotext`, splitter tekst i bidder/sider.
+2. **Embedding Layer:** Sender bidder til EmbeddingGemma, gemmer resultater i SQLite.
+3. **Search Layer:** Modtager forespørgsel, orkestrerer kald til SQLite (ANN) og `ripgrep`, fusionerer resultater.
+4. **UI Layer:** PySide6-vindue der fungerer som bindeled mellem brugeren og de bagvedliggende lag.
