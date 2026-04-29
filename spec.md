@@ -2,6 +2,10 @@
 
 Dette dokument beskriver kravene til "Indsigten", et program til hurtig og intelligent søgning i PDF-dokumenter.
 
+Så vidt som muligt skal programmet skrives modulært og følge design mønstre som f.eks. Strategy pattern, observer pattern, osv.. Det skal være nemt at tilføje/skifte en ny måde at generere vektorer (embeddings) af tekstbidder. Den visuelle brugergrænseflade skal bruge den anden funktionalitet som et bibliotek. PDF-håndtering og indeksering skal også virke uafhængigt af den visuelle brugergrænseflade, så vist man har løst til at lave en CLI, så kan det også lade sig gøre.
+
+Der skal laves unit testing og programmet udvikles med Test-Driven Development. Der skal anvendes mocks og spies, hvor nødvendigt. Vi går efter et minimum af afhængigheder og vil helst implementere tingene selv, hvis det kan lade sig gøre. Vi skal selvfølgelig bruge moduler/biblioteker, hvor nødvendigt.
+
 ## Formål
 
 At give brugeren mulighed for at finde information i store mængder PDF-filer ved at kombinere traditionel tekstsøgning (ripgrep) med moderne semantisk søgning (embeddings).
