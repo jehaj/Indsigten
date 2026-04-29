@@ -1,68 +1,50 @@
 # Specifikationer: Indsigten
 
-Dette dokument beskriver kravene til "Indsigten", et program til hurtig og intelligent søgning i PDF-dokumenter.
+Dette dokument definerer de tekniske og funktionelle krav til "Indsigten".
 
-Så vidt som muligt skal programmet skrives modulært og følge design mønstre som f.eks. Strategy pattern, observer pattern, osv.. Det skal være nemt at tilføje/skifte en ny måde at generere vektorer (embeddings) af tekstbidder. Den visuelle brugergrænseflade skal bruge den anden funktionalitet som et bibliotek. PDF-håndtering og indeksering skal også virke uafhængigt af den visuelle brugergrænseflade, så vist man har løst til at lave en CLI, så kan det også lade sig gøre.
+## 1. Vision og Formål
 
-Der skal laves unit testing og programmet udvikles med Test-Driven Development. Der skal anvendes mocks og spies, hvor nødvendigt. Vi går efter et minimum af afhængigheder og vil helst implementere tingene selv, hvis det kan lade sig gøre. Vi skal selvfølgelig bruge moduler/biblioteker, hvor nødvendigt.
+Indsigten skal gøre det muligt for brugere at navigere i store mængder PDF-dokumenter med en hastighed og intelligens, der overgår standard søgeværktøjer. Dette opnås ved at fusionere **semantisk søgning** (forståelse af mening) med **præcis tekstsøgning** (ripgrep).
 
-## Formål
+## 2. Designprincipper
 
-At give brugeren mulighed for at finde information i store mængder PDF-filer ved at kombinere traditionel tekstsøgning (ripgrep) med moderne semantisk søgning (embeddings).
+* **Modulær Arkitektur:** Programmet skal følge anerkendte designmønstre (f.eks. Strategy og Observer). Logik og brugerflade skal være skarpt adskilt.
+* **Performance Først:** Den præcise søgning skal prioriteres, og tunge ressourcer (som AI-modeller) skal indlæses dovent (lazy loading).
+* **TDD (Test-Driven Development):** Alt kernefunktionalitet skal udvikles med tests først, understøttet af mocks og spies for at sikre isolation.
+* **Minimalistiske Afhængigheder:** Vi foretrækker simple, effektive biblioteker og implementerer gerne logik selv, hvor det giver mening for at undgå "bloat".
 
-## Funktionelle krav
+## 3. Funktionelle Krav
 
-### 1. Brugergrænseflade (GUI)
+### Brugergrænseflade (GUI)
 
-* Programmet skal være en desktop-applikation bygget med **PySide6** (Qt for Python).
-* Grænsefladen skal have:
-  * Et søgefelt til både semantisk og præcis søgning.
-  * En liste eller et område til visning af søgeresultater.
-  * En menu eller knapper til at tilføje PDF-filer eller mapper til indekset.
-  * Statusvisning (f.eks. "Indekserer...", "Søgning færdig").
+* **Teknologi:** PySide6 (Qt for Python).
+* **Funktioner:** Søgefelt til hybrid søgning, resultatoversigt med snippets, manuel styring af kilde-mapper og statusvisning for indeksering.
 
-### 2. PDF-håndtering og indeksering
+### Indeksering og Datahåndtering
 
-* **Manuel kildevalg:** Brugeren vælger selv hvilke filer eller mapper, der skal inkluderes.
-* **Tekst-udtrækning:** Brug `pdftotext` (fra poppler-utils) til at udtrække rå tekst fra PDF'erne.
-* **Tekst-cache:** Den udtrukne tekst gemmes lokalt (f.eks. i en skjult mappe i brugerens hjemmemappe) for at muliggøre hurtig søgning med `ripgrep`.
+* **Tekst-udtræk:** Brug af `pdftotext` til generering af råtekst.
+* **Caching:** Udtræk gemmes lokalt for lynhurtig adgang via `ripgrep`.
+* **Integritet:** Filer spores via **SHA3-512** hashes for at undgå unødig gen-indeksering.
 
-### 3. Søgemaskine
+### Søgemaskine (Hybrid)
 
-* **Semantisk søgning:**
-  * Brug **all-MiniLM-L6-v2** via `sentence-transformers`.
-  * **Argumentation for modelvalg:**
-    * **Effektivitet:** Denne model er ekstremt hurtig og fylder minimalt i hukommelsen (~80MB), hvilket gør den endnu mere velegnet til kørsel på bærbare computere med begrænsede ressourcer.
-    * **Ydeevne:** Selvom den er lille, leverer den fremragende resultater for de fleste søgeopgaver og er en industristandard for letvægts semantisk søgning.
-    * **Dimensioner:** Den bruger 384 dimensioner, hvilket reducerer både lagerplads og søgetid i forhold til større modeller.
-  * Resultaterne gemmes i en **SQLite**-database.
-  * Brug en ANN-metode (Approximate Nearest Neighbor) til hurtig genfinding af vektorer.
-* **Præcis søgning:**
-  * Kør `ripgrep` parallelt mod tekst-cachen for at finde eksakte tekststrenge.
-* **Resultatvisning:**
-  * Vis PDF-navn, sidenummer og et kort uddrag (snippet) af teksten.
-  * Ranger resultaterne efter relevans (semantisk score kombineret med præcise match).
+* **Semantisk Del:**
+  * Model: `all-MiniLM-L6-v2` (valgt for sin ekstreme effektivitet og lave hukommelsesaftryk på ~80MB).
+  * Lager: Metadata og embeddings gemmes i **SQLite**.
+  * Søgning: HNSW (Hierarchical Navigable Small World) algoritme for lynhurtig ANN (Approximate Nearest Neighbor) søgning.
+* **Præcis Del:**
+  * Værktøj: `ripgrep` køres parallelt mod tekst-cachen.
 
-### 4. Visning af dokumenter
+## 4. Teknisk Stak
 
-* Når brugeren klikker på et resultat, skal PDF'en åbnes i systemets standard PDF-viser.
-* Programmet skal forsøge at sende parametre til PDF-viseren, så den åbner på det specifikke sidenummer.
-  * Dette kan gøres ved at detektere de mest gængse PDF-visere (f.eks. Okular, Evince, Adobe Acrobat) og bruge deres respektive kommandolinje-argumenter (f.eks. `--page`).
+* **Runtime:** Python 3.14+
+* **Pakkehåndtering:** `uv`
+* **Vektorsøgning:** `hnswlib`
+* **PDF-behandling:** `poppler-utils` (`pdftotext`, `pdfinfo`)
 
-## Tekniske specifikationer
+## 5. Arkitektoniske Lag
 
-* **Sprog:** Python 3.14+
-* **GUI:** PySide6
-* **Database:** SQLite (med vektorer gemt som BLOB eller via en udvidelse hvis muligt)
-* **Værktøjer:**
-  * `pdftotext` (til tekst-udtræk)
-  * `ripgrep` (til hurtig søgning)
-  * `EmbeddingGemma` (modellen til embeddings)
-* **Miljøstyring:** `uv`
-
-## Arkitektur
-
-1. **Ingestion Layer:** Håndterer filvalg, kører `pdftotext`, splitter tekst i bidder/sider.
-2. **Embedding Layer:** Sender bidder til EmbeddingGemma, gemmer resultater i SQLite.
-3. **Search Layer:** Modtager forespørgsel, orkestrerer kald til SQLite (ANN) og `ripgrep`, fusionerer resultater.
-4. **UI Layer:** PySide6-vindue der fungerer som bindeled mellem brugeren og de bagvedliggende lag.
+1. **Ingestion Layer:** Håndterer filsystemet, hashing og tekst-ekstraktion.
+2. **Embedding Layer:** Genererer vektorer og håndterer lazy loading af AI-modellen.
+3. **Search Layer:** Orkestrerer hybrid-søgning og rangerer resultater.
+4. **UI Layer:** PySide6-baseret grænseflade (eller CLI-interfacet).

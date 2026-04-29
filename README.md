@@ -1,47 +1,57 @@
 # Indsigten
 
-Find hurtigt det du leder efter i PDF-filer med semantisk søgning.
+Lyn-hurtig og intelligent søgning i dine PDF-dokumenter ved hjælp af hybrid søgning: kombinerer præcisionen fra traditionel tekstsøgning med styrken fra semantisk AI.
 
-Håbet er at lave en hurtig python prototype og lave en ordentlig løsning i et kompileret sprog (såsom c++, go eller rust).
+## Kom hurtigt i gang
 
-Læs mere om prorammet ved [spec.md](./spec.md).
+### 1. Forudsætninger
 
-## Udviklingsmiljø
+Sørg for at have følgende installeret på dit system:
 
-Programmet skrives i python og der anvendes `uv` for at holde styr på python-miljøet.
+* [uv](https://docs.astral.sh/uv/) (Python pakkehåndtering)
+* `pdftotext` (fra `poppler-utils` pakken)
+* `ripgrep` (`rg`)
 
-### Hvorfor `PYTHONPATH=src`?
+### 2. Installation
 
-Projektet bruger en `src`-layout struktur, hvor kildekoden ligger i `src/indsigten`. Dette er en "best practice" i Python for at sikre, at testene kører mod den installerede pakke og ikke ved et uheld mod kildekoden direkte. Når man kører programmet lokalt uden at have installeret det som en pakke, skal man fortælle Python, at den skal lede efter moduler i `src` mappen.
-
-## Brug af CLI
-
-Du kan bruge kommandolinjen til at indeksere PDF-filer og søge i dem.
-
-### Installation af afhængigheder
-
-Sørg for at have `uv`, `pdftotext` (poppler-utils) og `ripgrep` installeret på dit system.
-Kør derefter:
+Klon depotet og installer afhængigheder:
 
 ```bash
 uv sync
 ```
 
-### Kørsel af søgning
+### 3. Kørsel af søgning
 
-For at søge i en mappe med PDF-filer:
+Du kan bruge CLI-interfacet til at indeksere og søge med det samme:
 
 ```bash
-PYTHONPATH=src uv run python3 main.py --dirs demo -- "din søgestreng her"
+PYTHONPATH=src uv run python3 main.py --dirs /sti/til/dine/pdf-mapper -- "din søgestreng"
 ```
 
-### Parametre
+---
 
-* `--dirs`: En eller flere mapper der skal indekseres for PDF-filer.
-* `--db`: (Valgfri) Sti til SQLite databasen (standard: `indsigten.db`).
-* `--cache-dir`: (Valgfri) Sti til tekst-cachen brugt af ripgrep (standard: `.cache/indsigten` i din hjemmemappe).
+## Hvorfor Indsigten?
 
-Programmet bruger SHA3-512 hashing til at holde styr på hvilke filer der allerede er indekseret, så de ikke behandles flere gange.
+* **Hybrid Søgning:** Programmet finder både præcise tekst-match (via `ripgrep`) og semantiske ligheder (via AI), så du finder det du leder efter, selvom du ikke husker de præcise ord.
+* **Lyn-hurtig Respons:** Ved hjælp af en optimeret pipeline vises de præcise søgeresultater øjeblikkeligt, mens den tungere AI-model indlæses i baggrunden.
+* **Ressource-effektiv:** Bruger den ekstremt effektive `all-MiniLM-L6-v2` model (~80MB RAM), hvilket gør at programmet kører problemfrit på bærbare computere med kun 8GB RAM.
+* **Smart Indeksering:** Benytter **SHA3-512** hashing til at holde styr på dine filer. Kun nye eller ændrede filer indekseres, hvilket sparer tid og strøm.
+* **Privatliv:** Alt kører lokalt på din maskine. Ingen data sendes til skyen.
+
+## Udviklingsdetaljer
+
+### Projektstruktur og `PYTHONPATH=src`
+
+Dette projekt følger et moderne "src-layout". Det betyder, at kildekoden er isoleret i mappen `src/indsigten`.
+For at køre programmet lokalt uden at installere det som en pakke, skal du prefixe din kommando med `PYTHONPATH=src`. Dette sikrer, at Python kan finde `indsigten` modulet korrekt.
+
+### Teknisk Stak
+
+* **Sprog:** Python 3.14+
+* **Søgning:** HNSW (Hierarchical Navigable Small World) via `hnswlib` & `ripgrep`.
+* **AI Model:** `all-MiniLM-L6-v2` via `sentence-transformers`.
+* **Database:** SQLite.
+* **GUI (Under udvikling):** PySide6 (Qt).
 
 ---
-*Denne kode er primært skrevet af Gemini (`Gemini CLI`), men er blevet gennemlæst og testet.*
+*Denne kode er skrevet af Gemini, men er blevet gennemset og kvalitetssikret af et menneske.*
