@@ -1,13 +1,11 @@
-import subprocess
 import re
+import subprocess
+
 
 class PDFProcessor:
     def get_page_count(self, pdf_path):
         result = subprocess.run(
-            ["pdfinfo", pdf_path],
-            capture_output=True,
-            text=True,
-            check=True
+            ["pdfinfo", pdf_path], capture_output=True, text=True, check=True
         )
         match = re.search(r"Pages:\s+(\d+)", result.stdout)
         if match:
@@ -19,7 +17,7 @@ class PDFProcessor:
             ["pdftotext", "-f", str(page), "-l", str(page), pdf_path, "-"],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         return result.stdout
 

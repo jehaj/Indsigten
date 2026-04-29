@@ -32,7 +32,7 @@ uv sync
 For at søge i en mappe med PDF-filer:
 
 ```bash
-PYTHONPATH=src uv run python3 main.py --dirs demo "din søgestreng her"
+PYTHONPATH=src uv run python3 main.py --dirs demo -- "din søgestreng her"
 ```
 
 ### Parametre
