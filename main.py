@@ -9,12 +9,19 @@ from pathlib import Path
 from indsigten.core.pdf_processor import PDFProcessor
 from indsigten.core.ripgrep_searcher import RipgrepSearcher
 from indsigten.core.search_engine import SearchEngine
-
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Suppress verbose logging from external libraries
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("transformers").setLevel(logging.WARNING)
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+
 
 
 def get_file_hash(file_path):
