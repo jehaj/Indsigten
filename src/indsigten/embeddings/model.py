@@ -2,7 +2,7 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 
 class EmbeddingModel:
-    def __init__(self, model_name="google/gemma-7b"):
+    def __init__(self, model_name="all-MiniLM-L6-v2"):
         # Note: EmbeddingGemma specifically might need a different identifier 
         # but for this implementation we use sentence-transformers interface
         self.model = SentenceTransformer(model_name)
