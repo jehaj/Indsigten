@@ -1,5 +1,6 @@
 *.pdf
 *.db
+*.hnsw
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,linux,windows,macos,visualstudiocode,pycharm,node,c++,cmake,qt,qml
