@@ -13,6 +13,7 @@ class TestEmbeddingModel(unittest.TestCase):
         
         # Mock the encode method to return a dummy embedding
         dummy_embedding = np.random.rand(384).astype('float32')
+
         mock_model_instance.encode.return_value = dummy_embedding
         
         model = EmbeddingModel(model_name="test-model")

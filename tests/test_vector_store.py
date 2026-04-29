@@ -18,12 +18,13 @@ class TestVectorStore(unittest.TestCase):
         mock_hnsw_index.return_value = self.mock_index
         
         store = VectorStore(db_path=":memory:", dim=384)
-        
+
         # Test adding an embedding
         doc_id = "test_doc.pdf"
         page = 1
         text = "Some text content"
         embedding = np.random.rand(384).astype('float32')
+
         
         store.add_item(doc_id, page, text, embedding)
         
@@ -48,6 +49,7 @@ class TestVectorStore(unittest.TestCase):
         
         store = VectorStore(db_path=":memory:", dim=384)
         query_vector = np.random.rand(384).astype('float32')
+
         
         results = store.search(query_vector, k=1)
         

@@ -22,6 +22,7 @@ class TestSearchEngine(unittest.TestCase):
         text = "Hello world"
         embedding = np.random.rand(384).astype('float32')
         self.mock_model.get_embedding.return_value = embedding
+
         
         engine.add_page(doc_id, page, text)
         
@@ -41,6 +42,7 @@ class TestSearchEngine(unittest.TestCase):
         query = "find something"
         query_vector = np.random.rand(384).astype('float32')
         self.mock_model.get_embedding.return_value = query_vector
+
         self.mock_store.search.return_value = [{"doc_id": "test.pdf", "page": 1, "text": "result", "score": 0.9}]
         
         results = engine.search(query)
