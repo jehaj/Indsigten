@@ -9,6 +9,7 @@ from pathlib import Path
 from indsigten.core.pdf_processor import PDFProcessor
 from indsigten.core.ripgrep_searcher import RipgrepSearcher
 from indsigten.core.search_engine import SearchEngine
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -23,7 +24,6 @@ logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
 logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
 
 
-
 def get_file_hash(file_path):
     """Calculates the SHA3-512 hash of a file."""
     sha3 = hashlib.sha3_512()
@@ -33,64 +33,44 @@ def get_file_hash(file_path):
     return sha3.hexdigest()
 
 
-def index_files(dirs, engine, processor, cache_base, force_reindex=False):
-    """Indexes PDF files in the given directories."""
+def get_pdf_files(dirs):
+    """Gathers all PDF files from the given directories."""
+    pdf_files = []
     for dir_path in dirs:
         p = Path(dir_path)
         if not p.exists():
             logger.warning(f"Stien {dir_path} findes ikke.")
             continue
-
-        for pdf_file in p.glob("**/*.pdf"):
-            try:
-                file_hash = get_file_hash(pdf_file)
-                # Normalize path for the database
-                abs_path = str(pdf_file.absolute())
-
-                if not force_reindex and engine.is_file_indexed(abs_path, file_hash):
-                    logger.info(f"Springer over {pdf_file.name} (allerede indekseret).")
-                    continue
-
-                logger.info(f"Behandler {pdf_file.name}...")
-
-                # Create a text cache for ripgrep
-                relative_path = pdf_file.relative_to(p)
-                txt_cache_path = cache_base / relative_path.with_suffix(".txt")
-                txt_cache_path.parent.mkdir(parents=True, exist_ok=True)
-
-                # Extract and store text for ripgrep
-                subprocess.run(
-                    ["pdftotext", str(pdf_file), str(txt_cache_path)], check=True
-                )
-
-                # Process for semantic search
-                processor.process_pdf(str(pdf_file), engine)
-
-                # Mark as indexed
-                engine.mark_file_indexed(abs_path, file_hash)
-
-            except Exception as e:
-                logger.error(f"Fejl ved behandling af {pdf_file}: {e}")
+        for f in p.glob("**/*.pdf"):
+            pdf_files.append((f, p))
+    return pdf_files
 
 
-def perform_search(query, engine, rg_searcher, cache_base):
-    """Performs semantic and precise search and prints results."""
-    logger.info(f"Søger efter: '{query}'")
+def sync_ripgrep_cache(pdf_files, engine, cache_base, force_reindex=False):
+    """Phase 1: Ensure all PDF files have udtrukket text in the cache for ripgrep."""
+    for pdf_file, base_dir in pdf_files:
+        try:
+            file_hash = get_file_hash(pdf_file)
+            abs_path = str(pdf_file.absolute())
 
-    print("\n" + "=" * 50)
-    print("--- Semantiske resultater ---")
-    print("=" * 50)
-    try:
-        semantic_results = engine.search(query)
-        if not semantic_results:
-            print("Ingen semantiske resultater fundet.")
-        for res in semantic_results:
-            print(f"Score: {res['score']:.4f} | {res['doc_id']} (Side {res['page']})")
-            print(f"  {res['text'][:150]}...")
-            print("-" * 30)
-    except Exception as e:
-        logger.error(f"Fejl ved semantisk søgning: {e}")
+            # Even if semantically indexed, we might want to check if the txt cache exists
+            relative_path = pdf_file.relative_to(base_dir)
+            txt_cache_path = cache_base / relative_path.with_suffix(".txt")
+            
+            if not force_reindex and txt_cache_path.exists() and engine.is_file_indexed(abs_path, file_hash):
+                continue
 
+            logger.info(f"Ekstraherer tekst til cache: {pdf_file.name}...")
+            txt_cache_path.parent.mkdir(parents=True, exist_ok=True)
+            subprocess.run(
+                ["pdftotext", str(pdf_file), str(txt_cache_path)], check=True
+            )
+        except Exception as e:
+            logger.error(f"Fejl ved ekstrahering af {pdf_file}: {e}")
+
+
+def search_exact(query, rg_searcher, cache_base):
+    """Performs precise search and prints results."""
     print("\n" + "=" * 50)
     print("--- Præcise resultater (ripgrep) ---")
     print("=" * 50)
@@ -104,6 +84,40 @@ def perform_search(query, engine, rg_searcher, cache_base):
             print("-" * 30)
     except Exception as e:
         logger.error(f"Fejl ved præcis søgning: {e}")
+
+
+def index_semantically(pdf_files, engine, processor, force_reindex=False):
+    """Phase 2: Perform semantic indexing (this will load the model)."""
+    for pdf_file, _ in pdf_files:
+        try:
+            file_hash = get_file_hash(pdf_file)
+            abs_path = str(pdf_file.absolute())
+
+            if not force_reindex and engine.is_file_indexed(abs_path, file_hash):
+                continue
+
+            logger.info(f"Indekserer semantisk: {pdf_file.name}...")
+            processor.process_pdf(str(pdf_file), engine)
+            engine.mark_file_indexed(abs_path, file_hash)
+        except Exception as e:
+            logger.error(f"Fejl ved semantisk indeksering af {pdf_file}: {e}")
+
+
+def search_semantic(query, engine):
+    """Performs semantic search and prints results."""
+    print("\n" + "=" * 50)
+    print("--- Semantiske resultater ---")
+    print("=" * 50)
+    try:
+        semantic_results = engine.search(query)
+        if not semantic_results:
+            print("Ingen semantiske resultater fundet.")
+        for res in semantic_results:
+            print(f"Score: {res['score']:.4f} | {res['doc_id']} (Side {res['page']})")
+            print(f"  {res['text'][:150]}...")
+            print("-" * 30)
+    except Exception as e:
+        logger.error(f"Fejl ved semantisk søgning: {e}")
 
 
 def main():
@@ -132,18 +146,21 @@ def main():
     cache_base.mkdir(parents=True, exist_ok=True)
 
     try:
-        # 2. Initialize engine
+        # 2. Initialize components
         engine = SearchEngine(db_path=db_path)
         processor = PDFProcessor()
         rg_searcher = RipgrepSearcher()
 
-        # 3. Indexing
-        index_files(
-            args.dirs, engine, processor, cache_base, force_reindex=args.reindex
-        )
+        # 3. Gather files
+        pdf_files = get_pdf_files(args.dirs)
 
-        # 4. Search
-        perform_search(args.query, engine, rg_searcher, cache_base)
+        # 4. Phase 1 Indexing & Exact Search
+        sync_ripgrep_cache(pdf_files, engine, cache_base, force_reindex=args.reindex)
+        search_exact(args.query, rg_searcher, cache_base)
+
+        # 5. Phase 2 Indexing & Semantic Search
+        index_semantically(pdf_files, engine, processor, force_reindex=args.reindex)
+        search_semantic(args.query, engine)
 
     except KeyboardInterrupt:
         logger.info("\nAfbrudt af bruger.")

@@ -7,7 +7,7 @@ class TestSearchEngine(unittest.TestCase):
         self.mock_model = MagicMock()
         self.mock_store = MagicMock()
         
-    @patch('indsigten.core.search_engine.EmbeddingModel')
+    @patch('indsigten.embeddings.model.EmbeddingModel')
     @patch('indsigten.core.search_engine.VectorStore')
     def test_add_document(self, mock_vector_store, mock_embedding_model):
         from indsigten.core.search_engine import SearchEngine
@@ -29,7 +29,7 @@ class TestSearchEngine(unittest.TestCase):
         self.mock_model.get_embedding.assert_called_once_with(text)
         self.mock_store.add_item.assert_called_once_with(doc_id, page, text, embedding)
 
-    @patch('indsigten.core.search_engine.EmbeddingModel')
+    @patch('indsigten.embeddings.model.EmbeddingModel')
     @patch('indsigten.core.search_engine.VectorStore')
     def test_search(self, mock_vector_store, mock_embedding_model):
         from indsigten.core.search_engine import SearchEngine
