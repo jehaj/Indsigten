@@ -1,7 +1,7 @@
 *.pdf
 *.db
 *.hnsw
-
+GEMINI.md
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,linux,windows,macos,visualstudiocode,pycharm,node,c++,cmake,qt,qml
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,linux,windows,macos,visualstudiocode,pycharm,node,c++,cmake,qt,qml
