@@ -28,6 +28,14 @@ Du kan bruge CLI-interfacet til at indeksere og søge med det samme:
 PYTHONPATH=src uv run python3 main.py --dirs /sti/til/dine/pdf-mapper -- "din søgestreng"
 ```
 
+eller med
+
+```bash
+uv run --env-file .env python3 main.py --dirs /sti/til/dine/pdf-mapper -- "din søgestreng"
+```
+
+hvis du gør brug af en `.env` fil. Man kan med fordel også sætte `HF_TOKEN` til en gyldig Huggingface token, da SentenceTransformers henter modellerne derfra.
+
 ---
 
 ## Hvorfor Indsigten?
