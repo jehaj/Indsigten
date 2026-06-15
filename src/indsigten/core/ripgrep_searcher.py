@@ -13,6 +13,7 @@ class RipgrepSearcher:
                 "--line-number",
                 "--with-filename",
                 "--no-heading",
+                "-i",
                 query,
                 search_dir,
             ],
