@@ -35,7 +35,7 @@ PYTHONPATH=src uv run python3 main.py --dirs /sti/til/dine/pdf-mapper -- "din s�
 * **Hybrid Søgning:** Programmet finder både præcise tekst-match (via `ripgrep`) og semantiske ligheder (via AI), så du finder det du leder efter, selvom du ikke husker de præcise ord.
 * **Lyn-hurtig Respons:** Ved hjælp af en optimeret pipeline vises de præcise søgeresultater øjeblikkeligt, mens den tungere AI-model indlæses i baggrunden.
 * **Ressource-effektiv:** Bruger den ekstremt effektive `all-MiniLM-L6-v2` model (~80MB RAM), hvilket gør at programmet kører problemfrit på bærbare computere med kun 8GB RAM.
-* **Smart Indeksering:** Benytter **SHA3-512** hashing til at holde styr på dine filer. Kun nye eller ændrede filer indekseres, hvilket sparer tid og strøm.
+* **Smart Indeksering:** Benytter **SHA2-256** hashing til at holde styr på dine filer. Kun nye eller ændrede filer indekseres, hvilket sparer tid og strøm.
 * **Privatliv:** Alt kører lokalt på din maskine. Ingen data sendes til skyen.
 
 ## Udviklingsdetaljer
