@@ -79,11 +79,30 @@ def search_exact(query, rg_searcher, cache_base):
         if not rg_results:
             print("Ingen præcise resultater fundet.")
         for res in rg_results:
-            print(f"Fil: {res['file']} (Linje {res['line']})")
+            page = get_page_from_cache_line(res["file"], res["line"])
+            page_text = str(page) if page is not None else "ukendt"
+            print(f"Fil: {res['file']} (Side {page_text})")
             print(f"  {res['text']}")
             print("-" * 30)
     except Exception as e:
         logger.error(f"Fejl ved præcis søgning: {e}")
+
+
+def get_page_from_cache_line(cache_file, line_number):
+    """Converts a line number in a pdftotext cache file to a page number."""
+    if line_number <= 1:
+        return 1
+
+    page = 1
+    try:
+        with open(cache_file, encoding="utf-8", errors="ignore") as file:
+            for current_line_number, line in enumerate(file, start=1):
+                if current_line_number >= line_number:
+                    break
+                page += line.count("\f")
+        return page
+    except OSError:
+        return None
 
 
 def index_semantically(pdf_files, engine, processor, force_reindex=False):
