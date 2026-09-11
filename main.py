@@ -25,12 +25,12 @@ logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
 
 
 def get_file_hash(file_path):
-    """Calculates the SHA3-512 hash of a file."""
-    sha3 = hashlib.sha3_512()
+    """Calculates the SHA2-256 hash of a file."""
+    sha256 = hashlib.sha256()
     with open(file_path, "rb") as f:
         while chunk := f.read(8192):
-            sha3.update(chunk)
-    return sha3.hexdigest()
+            sha256.update(chunk)
+    return sha256.hexdigest()
 
 
 def get_pdf_files(dirs):
@@ -48,16 +48,12 @@ def get_pdf_files(dirs):
 
 def sync_ripgrep_cache(pdf_files, engine, cache_base, force_reindex=False):
     """Phase 1: Ensure all PDF files have udtrukket text in the cache for ripgrep."""
-    for pdf_file, base_dir in pdf_files:
+    for pdf_file, _ in pdf_files:
         try:
             file_hash = get_file_hash(pdf_file)
-            abs_path = str(pdf_file.absolute())
-
-            # Even if semantically indexed, we might want to check if the txt cache exists
-            relative_path = pdf_file.relative_to(base_dir)
-            txt_cache_path = cache_base / relative_path.with_suffix(".txt")
+            txt_cache_path = cache_base / f"{file_hash}.txt"
             
-            if not force_reindex and txt_cache_path.exists() and engine.is_file_indexed(abs_path, file_hash):
+            if not force_reindex and txt_cache_path.exists():
                 continue
 
             logger.info(f"Ekstraherer tekst til cache: {pdf_file.name}...")
@@ -69,7 +65,7 @@ def sync_ripgrep_cache(pdf_files, engine, cache_base, force_reindex=False):
             logger.error(f"Fejl ved ekstrahering af {pdf_file}: {e}")
 
 
-def search_exact(query, rg_searcher, cache_base):
+def search_exact(query, rg_searcher, cache_base, hash_to_pdf_path=None):
     """Performs precise search and prints results."""
     print("\n" + "=" * 50)
     print("--- Præcise resultater (ripgrep) ---")
@@ -79,7 +75,12 @@ def search_exact(query, rg_searcher, cache_base):
         if not rg_results:
             print("Ingen præcise resultater fundet.")
         for res in rg_results:
-            print(f"Fil: {res['file']} (Linje {res['line']})")
+            display_file = res["file"]
+            if hash_to_pdf_path:
+                hash_key = Path(res["file"]).stem
+                display_file = hash_to_pdf_path.get(hash_key, display_file)
+
+            print(f"Fil: {display_file} (Linje {res['line']})")
             print(f"  {res['text']}")
             print("-" * 30)
     except Exception as e:
@@ -153,10 +154,13 @@ def main():
 
         # 3. Gather files
         pdf_files = get_pdf_files(args.dirs)
+        hash_to_pdf_path = {
+            get_file_hash(pdf_file): str(pdf_file.absolute()) for pdf_file, _ in pdf_files
+        }
 
         # 4. Phase 1 Indexing & Exact Search
         sync_ripgrep_cache(pdf_files, engine, cache_base, force_reindex=args.reindex)
-        search_exact(args.query, rg_searcher, cache_base)
+        search_exact(args.query, rg_searcher, cache_base, hash_to_pdf_path=hash_to_pdf_path)
 
         # 5. Phase 2 Indexing & Semantic Search
         index_semantically(pdf_files, engine, processor, force_reindex=args.reindex)

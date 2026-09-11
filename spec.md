@@ -24,7 +24,7 @@ Indsigten skal gøre det muligt for brugere at navigere i store mængder PDF-dok
 
 * **Tekst-udtræk:** Brug af `pdftotext` til generering af råtekst.
 * **Caching:** Udtræk gemmes lokalt for lynhurtig adgang via `ripgrep`.
-* **Integritet:** Filer spores via **SHA3-512** hashes for at undgå unødig gen-indeksering.
+* **Integritet:** Filer spores via **SHA2-256** hashes for at undgå unødig gen-indeksering.
 
 ### Søgemaskine (Hybrid)
 
